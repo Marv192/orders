@@ -117,7 +117,7 @@ class TestOrder:
         mock_result.scalar_one_or_none.return_value = mock_order
         mock_db_session.execute.return_value = mock_result
 
-        result = await order_crud.delete(db=mock_db_session, order_id=mock_order.id)
+        result = await order_crud.delete_by_user(db=mock_db_session, order_id=mock_order.id, user_id=mock_order.user_id)
 
         assert result == mock_order
         mock_db_session.delete.assert_called_once()
@@ -129,7 +129,7 @@ class TestOrder:
         mock_db_session.execute.return_value = mock_result
 
         with pytest.raises(HTTPException) as exc_info:
-            await order_crud.delete(db=mock_db_session, order_id=mock_order.id)
+            await order_crud.delete_by_user(db=mock_db_session, order_id=mock_order.id, user_id=mock_order.user_id)
 
         assert exc_info.value.status_code == 404
         assert exc_info.value.detail == 'Order not found'

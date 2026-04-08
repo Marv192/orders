@@ -1,4 +1,3 @@
-from typing import Optional
 from uuid import UUID
 
 from fastapi import HTTPException, status
@@ -57,13 +56,15 @@ class CRUDOrder(CRUDBase[Order, OrderCreate, OrderUpdate]):
 
         return updated_order
 
-    async def delete(self, db: AsyncSession, *, order_id: UUID) -> Optional[Order]:
-        result = await super().delete(db=db, obj_id=order_id)
+    async def delete_by_user(self, db: AsyncSession, *, order_id: UUID, user_id: UUID) -> Order:
+        order = await order_crud.get(db=db, order_id=order_id)
 
-        if not result:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Order not found")
+        if str(order.user_id) != str(user_id):
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
 
-        return result
+        await db.delete(order)
+        await db.commit()
+        return order
 
 
 order_crud = CRUDOrder(Order)

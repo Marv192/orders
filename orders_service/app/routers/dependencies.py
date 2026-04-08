@@ -14,3 +14,7 @@ def permission_required(permission_code: str):
         return True
 
     return check_permission
+
+
+def get_current_user_id(request: Request):
+    return request.state.user.get("user_id")

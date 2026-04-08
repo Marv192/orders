@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.constants import ORDER_SKIP, ORDER_LIMIT
 from app.crud.order import order_crud
 from app.models import get_async_session
-from app.routers.dependencies import permission_required
+from app.routers.dependencies import permission_required, get_current_user_id
 from app.schemas.orders import OrderDB, OrderCreate, OrderInfo, OrderUpdate
 
 orders = APIRouter()
@@ -39,7 +39,8 @@ async def update_order(order_id: UUID, order_in: OrderUpdate, session: AsyncSess
 
 
 @orders.delete('/{order_id}', status_code=status.HTTP_204_NO_CONTENT)
-async def delete_order(order_id: UUID, session: AsyncSession = Depends(get_async_session),
+async def delete_order(order_id: UUID, user_id=Depends(get_current_user_id),
+                       session: AsyncSession = Depends(get_async_session),
                        _=Depends(permission_required('order.delete'))):
-    await order_crud.delete(db=session, order_id=order_id)
+    await order_crud.delete_by_user(db=session, order_id=order_id, user_id=user_id)
     return None
