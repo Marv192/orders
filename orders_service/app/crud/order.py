@@ -13,9 +13,10 @@ from app.utils.price import get_delivery_price, get_total_price, get_cart_price
 
 
 class CRUDOrder(CRUDBase[Order, OrderCreate, OrderUpdate]):
-    async def create(self, db: AsyncSession, *, obj_in: OrderCreate) -> Order:
+    async def create_by_user(self, db: AsyncSession, *, obj_in: OrderCreate, user_id: UUID) -> Order:
         items_data = obj_in.items
         order_data = obj_in.model_dump(exclude={"items"})
+        order_data['user_id'] = user_id
         order_data['cart_price'] = get_cart_price(items_data)
         order_data['delivery_price'] = get_delivery_price()
         order_data['total_price'] = get_total_price(order_data['cart_price'], order_data['delivery_price'])

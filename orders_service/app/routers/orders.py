@@ -13,9 +13,10 @@ orders = APIRouter()
 
 
 @orders.post('/', status_code=status.HTTP_201_CREATED, response_model=OrderDB)
-async def create_order(order_in: OrderCreate, session: AsyncSession = Depends(get_async_session),
+async def create_order(order_in: OrderCreate, user_id=Depends(get_current_user_id),
+                       session: AsyncSession = Depends(get_async_session),
                        _=Depends(permission_required('order.create'))):
-    return await order_crud.create(db=session, obj_in=order_in)
+    return await order_crud.create_by_user(db=session, obj_in=order_in, user_id=user_id)
 
 
 @orders.get('/{order_id}', response_model=OrderInfo)

@@ -17,7 +17,6 @@ class OrderItemBase(BaseModel):
 
 
 class OrderBase(BaseModel):
-    user_id: UUID
     status: str = Field(max_length=ORDER_STATUS_MAX_LENGTH, min_length=ORDER_STATUS_MIN_LENGTH)
     items: list[OrderItemBase]
 
@@ -28,9 +27,13 @@ class OrderCreate(OrderBase):
 
 class OrderUpdate(BaseModel):
     status: Optional[str] = Field(default=None, max_length=ORDER_STATUS_MAX_LENGTH, min_length=ORDER_STATUS_MIN_LENGTH)
+    cart_price: Optional[Decimal] = Field(decimal_places=ORDER_PRICE_DECIMAL_PLACES, max_digits=ORDER_PRICE_MAX_DIGITS)
+    total_price: Optional[Decimal] = Field(decimal_places=ORDER_PRICE_DECIMAL_PLACES, max_digits=ORDER_PRICE_MAX_DIGITS)
+    delivery_price: Optional[Decimal] = Field(decimal_places=ORDER_PRICE_DECIMAL_PLACES, max_digits=ORDER_PRICE_MAX_DIGITS)
 
 
 class OrderInfo(OrderBase):
+    user_id: UUID
     cart_price: Decimal = Field(decimal_places=ORDER_PRICE_DECIMAL_PLACES, max_digits=ORDER_PRICE_MAX_DIGITS)
     total_price: Decimal = Field(decimal_places=ORDER_PRICE_DECIMAL_PLACES, max_digits=ORDER_PRICE_MAX_DIGITS)
     delivery_price: Decimal = Field(decimal_places=ORDER_PRICE_DECIMAL_PLACES, max_digits=ORDER_PRICE_MAX_DIGITS)

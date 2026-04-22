@@ -60,11 +60,12 @@ class TestOrder:
             obj.id = UUID('123e4567-e89b-12d3-a456-426614174001')
             obj.created_at = datetime.now()
 
-        order_data = OrderCreate(user_id=mock_order.user_id, status=mock_order.status, items=mock_order.items)
+        order_data = OrderCreate(status=mock_order.status, items=mock_order.items)
         mock_db_session.refresh.side_effect = refresh_side_effect
 
         with patch('app.crud.order.send_order_created_event') as mock_send_event:
-            result = await order_crud.create(db=mock_db_session, obj_in=order_data)
+            result = await order_crud.create_by_user(db=mock_db_session, obj_in=order_data,
+                                                     user_id=UUID('123e4567-e89b-12d3-a456-426614174002'))
 
         assert result.id == mock_order.id
         assert result.status == mock_order.status
