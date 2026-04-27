@@ -18,7 +18,7 @@ class AuthMiddleware(BaseHTTPMiddleware):
 
         auth_header = request.headers.get('Authorization')
 
-        if not auth_header.startswith('Bearer '):
+        if not auth_header.startswith('Bearer ') or auth_header is None:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
                                 detail="Invalid or missing Authorization Header")
 
