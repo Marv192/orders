@@ -1,8 +1,13 @@
-import os
+from pydantic import Field
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
-DUMMY_DB_URL = 'postgresql+asyncpg://user:password@localhost:5432/testdb'
-DATABASE_URL = os.getenv('DATABASE_URL', DUMMY_DB_URL)
-MIGRATION_DATABASE_URL = os.getenv('MIGRATION_DATABASE_URL', DUMMY_DB_URL)
 
-JWT_SECRET = os.getenv('JWT_SECRET')
-JWT_ALGORITHM = 'HS256'
+class OrdersSettings(BaseSettings):
+    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", case_sensitive=False)
+    database_url: str
+    migration_database_url: str
+    jwt_secret: str = Field(default="HS256")
+    jwt_algorithm: str
+
+
+settings = OrdersSettings()
