@@ -161,11 +161,91 @@ services:
     networks:
       - backend_network
 
+  elasticsearch-orders:
+    image: docker.elastic.co/elasticsearch/elasticsearch:9.4.0
+    container_name: elasticsearch-orders
+    restart: unless-stopped
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ports:
+      - "9200:9200"
+    volumes:
+      - elastic_data_orders:/usr/share/elasticsearch/data
+    networks:
+      - backend_network
+
+  logstash_orders:
+    image: docker.elastic.co/logstash/logstash:9.4.0
+    container_name: logstash_orders
+    restart: unless-stopped
+    environment:
+      - "LS_JAVA_OPTS=-Xms512m -Xmx512m -Djava.net.preferIPv4Stack=true"
+    volumes:
+      - ./orders_service/elk-stack/logstash/pipeline/logstash.conf:/usr/share/logstash/pipeline/logstash.conf:ro
+    ports:
+      - "9600:9600"
+      - "12201:12201/udp"
+    depends_on:
+      - elasticsearch-orders
+    networks:
+      - backend_network
+
+  kibana_orders:
+    image: docker.elastic.co/kibana/kibana:9.4.0
+    container_name: kibana_orders
+    restart: unless-stopped
+    ports:
+      - "5601:5601"
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch-orders:9200
+    depends_on:
+      - elasticsearch-orders
+    networks:
+      - backend_network
+    healthcheck:
+      test: [ "CMD-SHELL", "curl -s -f http://localhost:5601/api/status" ]
+      interval: 5s
+      timeout: 5s
+      retries: 15
+
+  kibana-init_orders:
+    image: curlimages/curl:8.20.0
+    container_name: kibana-init_orders
+    restart: no
+    depends_on:
+      kibana_orders:
+        condition: service_healthy
+    volumes:
+      - ./orders_service/elk-stack/kibana/init.sh:/init.sh:ro
+      - ./orders_service/elk-stack/kibana/orders_dashboard.ndjson:/usr/share/kibana/data/orders_dashboard.ndjson:ro
+    command: [ "/bin/sh", "/init.sh" ]
+    networks:
+      - backend_network
+
+  filebeat_orders:
+    image: docker.elastic.co/beats/filebeat:9.4.0
+    container_name: filebeat_orders
+    restart: unless-stopped
+    user: root
+    command: [ "filebeat", "-e", "--strict.perms=false" ]
+    volumes:
+      - ./orders_service/elk-stack/filebeat/filebeat.yml:/usr/share/filebeat/filebeat.yml:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    depends_on:
+      - logstash_orders
+    networks:
+      - backend_network
+
+
 volumes:
   postgres_data_orders:
   kafka_data:
   prometheus_data:
   grafana_data:
+  elastic_data_orders:
 
 networks:
   backend_network:
