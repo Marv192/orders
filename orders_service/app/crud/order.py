@@ -1,3 +1,4 @@
+import logging
 from uuid import UUID
 
 from fastapi import HTTPException, status
@@ -10,6 +11,8 @@ from app.kafka.events import send_order_created_event, send_order_updated_event
 from app.models import Order, OrderItem
 from app.schemas.orders import OrderCreate, OrderUpdate, OrderDB
 from app.utils.price import get_delivery_price, get_total_price, get_cart_price
+
+logger = logging.getLogger(__name__)
 
 
 class CRUDOrder(CRUDBase[Order, OrderCreate, OrderUpdate]):
@@ -33,12 +36,14 @@ class CRUDOrder(CRUDBase[Order, OrderCreate, OrderUpdate]):
 
         order_db = OrderDB.model_validate(db_order)
         send_order_created_event(order_db)
+        logger.info("Order created", extra={"order_id": str(order_db.id)})
         return db_order
 
     async def get(self, db: AsyncSession, *, order_id: UUID) -> Order:
         order_info = await super().get(db=db, obj_id=order_id)
 
         if not order_info:
+            logger.warning("Order not found", extra={"order_id": str(order_id)})
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Order not found")
 
         return order_info
@@ -54,6 +59,13 @@ class CRUDOrder(CRUDBase[Order, OrderCreate, OrderUpdate]):
 
         order_updated = OrderDB.model_validate(updated_order)
         send_order_updated_event(order_updated)
+        logger.info("Order updated", extra={
+            "order_id": str(order_updated.id),
+            "new_status": order_updated.status,
+            "new_cart_price": order_updated.cart_price,
+            "new_delivery_price": order_updated.delivery_price,
+            "new_total_price": order_updated.total_price
+        })
 
         return updated_order
 
@@ -61,10 +73,15 @@ class CRUDOrder(CRUDBase[Order, OrderCreate, OrderUpdate]):
         order = await order_crud.get(db=db, order_id=order_id)
 
         if str(order.user_id) != str(user_id):
+            logger.warning("Order delete failed: access denied", extra={
+                "order_id": str(order_id),
+                "order_user_id": str(order.user_id)
+            })
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
 
         await db.delete(order)
         await db.commit()
+        logger.info("Order deleted", extra={"order_id": str(order_id)})
         return order
 
 

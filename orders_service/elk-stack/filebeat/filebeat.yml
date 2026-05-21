@@ -19,6 +19,7 @@ filebeat.inputs:
 
     scan_frequency: 5s
     harvester_limit: 5
+    close.timeout: 20s
 
 output.logstash:
   hosts: ["logstash_orders:5044"]

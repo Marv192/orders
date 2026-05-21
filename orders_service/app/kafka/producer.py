@@ -28,28 +28,36 @@ class KafkaOrderProducer:
 
     def delivery_callback(self, err, msg):
         if err:
-            logger.error(f"Falied to deliver message: {err}")
+            logger.warning("Failed to deliver message", extra={"error": err})
         else:
-            logger.info(f"Message delivered to {msg.topic()}")
+            logger.info("Message delivered", extra={"topic": msg.topic(), "partition": msg.partition()})
 
-    def send_order_event(self, event: OrderEvent, topic: str, key: Optional[str] = None) -> bool:
+    def send_order_event(self, event: OrderEvent,
+                         topic: str,
+                         key: Optional[str] = None,
+                         headers: Optional[dict[str, str]] = None) -> bool:
         try:
             value = event.model_dump_json().encode("utf-8")
             key = key or str(event.data.id)
             key_bytes = key.encode("utf-8")
 
-            self.producer.produce(topic=topic, key=key_bytes, value=value, callback=self.delivery_callback)
+            self.producer.produce(topic=topic, key=key_bytes, value=value, headers=headers,
+                                  callback=self.delivery_callback)
             self.producer.poll(0)
 
+            logger.info("Message sent", extra={"topic": topic})
             return True
 
         except BufferError:
-            logger.warning(f"Message failed to send to {topic}, queue is full")
+            logger.warning("Message failed to send: queue is full", extra={"topic": topic})
             self.producer.poll(1)
-            return self.send_order_event(event, topic, key)
+            return self.send_order_event(event, topic, key, headers)
 
         except Exception as e:
-            logger.error(f"Failed to send message to {topic}: {e}")
+            logger.exception("Failed to send message", extra={
+                "topic": topic,
+                "error_type": type(e).__name__
+            })
             return False
 
     def close(self):
